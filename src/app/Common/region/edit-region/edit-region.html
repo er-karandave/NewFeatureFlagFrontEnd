@@ -1,0 +1,197 @@
+
+<div class="edit-region-container">
+  <header class="page-header">
+    <div class="header-content">
+      <button class="btn-back" (click)="goBack()">← Back</button>
+      <h1 class="page-title">Edit Region</h1>
+    </div>
+  </header>
+
+  @if (hasError()) {
+  <div class="alert alert-error">
+    <span>⚠️</span>
+    <span>{{ regionError() }}</span>
+    <button class="alert-close" (click)="regionService.clearError()">×</button>
+  </div>
+  }
+  @if (!hasValidRegion() && !isLoading()) {
+  <div class="alert alert-warning">
+    <span>⚠️</span>
+    <span>Invalid or missing region name in query parameters</span>
+    <button class="btn-primary" (click)="goBack()">Go to Regions List</button>
+  </div>
+  }
+
+  @if (isLoading()) {
+  <div class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading region data...</p>
+  </div>
+  }
+
+  @if (!isLoading() && hasValidRegion()) {
+  <div class="content-wrapper">
+    <div class="region-info-card">
+      <div class="region-info-header">
+        <span class="region-icon">🌍</span>
+        <div>
+          <h2 class="region-name">{{ currentRegion()?.regionName }}</h2>
+          <p class="region-subtitle">Region details (read-only)</p>
+        </div>
+      </div>
+      <div class="region-meta">
+        <!-- <div class="meta-item">
+          <span class="meta-label">Created</span>
+          <span class="meta-value">{{ currentRegion()?.createdDate | date:'MMM dd, yyyy' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Countries</span>
+          <span class="meta-value">{{ currentRegion()?.countryCount || 0 }}</span>
+        </div> -->
+      </div>
+      <p class="read-only-notice">
+        ℹ️ Regions are stored as text values in the Users table.
+        Region details cannot be edited, but you can manage feature permissions below.
+      </p>
+    </div>
+
+    <div class="permissions-section">
+      <div class="section-header">
+        <h3>🔐 Region Feature Permissions</h3>
+        <span class="section-subtitle">
+          {{ grantedPermissionsCount() }} granted / {{ deniedPermissionsCount() }} denied / {{ totalFeaturesCount() }}
+          total
+        </span>
+      </div>
+
+      @if (permissionsLoading()) {
+      <div class="loading-mini">
+        <div class="spinner-small"></div>
+        <span>Loading permissions...</span>
+      </div>
+      }
+
+      @if (!permissionsLoading() && regionPermissions() && regionPermissions()!.length > 0) {
+      <div class="permissions-table-container">
+        <table class="permissions-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Code</th>
+              <th>Effective</th>
+              <th>Granted By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (perm of regionPermissions(); track perm.featureId) {
+            <tr class="permission-row" [class.granted]="perm.effectivePermission"
+              [class.denied]="!perm.effectivePermission">
+              <td>
+                <span class="feature-name">{{ perm.featureName }}</span>
+              </td>
+              <td>
+                <code class="feature-code">{{ perm.featureCode }}</code>
+              </td>
+              <td>
+                <span class="status-badge" [class.granted]="perm.effectivePermission"
+                  [class.denied]="!perm.effectivePermission">
+                  {{ perm.effectivePermission ? '✅ Granted' : '❌ Denied' }}
+                </span>
+              </td>
+              <td>
+                <span class="granted-by">
+                  @if (perm.regionLevel) {
+                  <span class="level-badge country">REGION</span>
+                  <span class="granted-id">{{ currentRegion()?.regionName }}</span>
+                  } @else if (perm.globalLevel) {
+                  <span class="level-badge global">GLOBAL</span>
+                  <span class="granted-id">Default</span>
+                  } @else {
+                  <span class="default-perm">Default (Denied)</span>
+                  }
+                </span>
+              </td>
+              <td>
+                <button class="btn-view-breakdown" (click)="viewBreakdown(perm.featureId)" title="View breakdown">
+                  🔍 Details
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (selectedBreakdownFeature()) {
+      <div class="breakdown-panel">
+        <div class="breakdown-header">
+          <h4>Permission Breakdown: {{ selectedBreakdownFeature()?.featureName }}</h4>
+          <button class="btn-close-breakdown" (click)="selectedBreakdownFeature.set(null)">✕</button>
+        </div>
+
+        <div class="breakdown-content">
+          <div class="breakdown-row">
+            <span class="breakdown-label">🌍 Region Level ({{ currentRegion()?.regionName }})</span>
+            <div class="breakdown-value">
+              <label class="toggle-switch small">
+                <input type="checkbox" [checked]="selectedBreakdownFeature()?.regionLevel" (change)="togglePermission(
+                selectedBreakdownFeature()!.featureId, 
+                'COUNTRY', 
+                currentRegion()?.regionName || '', 
+                selectedBreakdownFeature()!.regionLevel
+              )" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span [class.granted]="selectedBreakdownFeature()?.regionLevel"
+                [class.denied]="!selectedBreakdownFeature()?.regionLevel">
+                {{ selectedBreakdownFeature()?.regionLevel ? 'Granted' : 'Denied' }}
+              </span>
+            </div>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">🌐 Global Level</span>
+            <div class="breakdown-value">
+              <label class="toggle-switch small">
+                <input type="checkbox" [checked]="selectedBreakdownFeature()?.globalLevel" (change)="togglePermission(
+                selectedBreakdownFeature()!.featureId, 
+                'GLOBAL', 
+                '1', 
+                selectedBreakdownFeature()!.globalLevel
+              )" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span [class.granted]="selectedBreakdownFeature()?.globalLevel"
+                [class.denied]="!selectedBreakdownFeature()?.globalLevel">
+                {{ selectedBreakdownFeature()?.globalLevel ? 'Granted' : 'Denied' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="breakdown-effective">
+            <strong>Effective Permission:</strong>
+            <span class="status-badge" [class.granted]="selectedBreakdownFeature()?.effectivePermission"
+              [class.denied]="!selectedBreakdownFeature()?.effectivePermission">
+              {{ selectedBreakdownFeature()?.effectivePermission ? '✅ GRANTED' : '❌ DENIED' }}
+            </span>
+            <span class="priority-note">
+              (Priority: Region → Global)
+            </span>
+          </div>
+        </div>
+      </div>
+      }
+      } @else if (!permissionsLoading()) {
+      <div class="empty-state">
+        <span>📭</span>
+        <p>No features found</p>
+      </div>
+      }
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" (click)="goBack()">
+        Go Back
+      </button>
+    </div>
+  </div>
+  }
+</div>

@@ -1,0 +1,115 @@
+
+<div class="user-list-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">
+        <span class="icon">👤</span>
+        User Management
+      </h1>
+      <p class="page-subtitle">View and manage system users</p>
+    </div>
+    <button class="btn-refresh" (click)="refresh()" [disabled]="isLoading()">
+      <span>🔄</span> Refresh
+    </button>
+  </header>
+  @if (hasError()) {
+  <div class="alert alert-error">
+    <span class="alert-icon">⚠️</span>
+    <span>{{ error() }}</span>
+    <button class="alert-close" (click)="userService.clearError()">×</button>
+  </div>
+  }
+  @if (isLoading()) {
+  <div class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading users...</p>
+  </div>
+  }
+  @if (!isLoading()) {
+  <div class="content-wrapper">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <h3>{{ totalUsers() }}</h3>
+          <p>Total Users</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <h3>{{ displayUsersCount() }}</h3>
+          <p>Filtered Users</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" placeholder="Search by name, email, role, or region..."
+        (input)="onSearchChange($event)" class="search-input" />
+      @if (searchQuery()) {
+      <button class="search-clear" (click)="clearSearch()">✕</button>
+      }
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th class="col-name">User Name</th>
+            <th class="col-email">Email</th>
+            <th class="col-role">Role</th>
+            <th class="col-region">Region</th>
+            <th class="col-dob">DOB</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of displayUsers(); track trackByUserId($index, user)) {
+          <tr class="table-row">
+            <td class="col-id">#{{ user.id }}</td>
+            <td class="col-name">
+              <div class="user-name-cell">
+                <span class="user-avatar">{{ user.firstName.charAt(0) }}{{ user.lastName.charAt(0) }}</span>
+                <span class="user-fullname">{{ user.firstName }} {{ user.lastName }}</span>
+              </div>
+            </td>
+            <td class="col-email">
+              <span class="email-text">{{ user.email }}</span>
+            </td>
+            <td class="col-role">
+              <span class="role-badge">{{ user.userRole }}</span>
+            </td>
+            <td class="col-region">
+              <span class="region-badge">{{ user.region }}</span>
+            </td>
+            <td class="col-dob">
+              <span class="dob-text">{{ user.dob || 'N/A' }}</span>
+            </td>
+            <td class="col-actions">
+              <button class="btn-action btn-edit" (click)="editUser(user.id)">
+                <span>✏️</span> Edit
+              </button>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="7" class="empty-state">
+              <div class="empty-content">
+                <span class="empty-icon">📭</span>
+                <p>No users found</p>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <p class="table-info">Showing {{ displayUsersCount() }} of {{ totalUsers() }} users</p>
+    </div>
+  </div>
+  }
+</div>

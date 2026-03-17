@@ -1,0 +1,28 @@
+
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <h1>Admin Dashboard</h1>
+    <p class="subtitle">Manage your system efficiently</p>
+  </header>
+
+  <div class="dashboard-grid">
+    @for (item of dashboardItems(); track item.route) {
+      <div 
+        class="dashboard-card" 
+        (click)="navigate(item.route)"
+        [style.border-top-color]="item.color"
+      >
+        <div class="card-icon" [style.background-color]="item.color">
+          <span>{{ item.icon }}</span>
+        </div>
+        <h3 class="card-title">{{ item.title }}</h3>
+        <p class="card-description">{{ item.description }}</p>
+        <div class="card-arrow">→</div>
+      </div>
+    }
+  </div>
+
+  <footer class="dashboard-footer">
+    <p>&copy; 2024 Admin Portal. All rights reserved.</p>
+  </footer>
+</div>

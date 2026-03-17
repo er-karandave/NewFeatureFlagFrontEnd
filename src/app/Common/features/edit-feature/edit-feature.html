@@ -1,0 +1,220 @@
+
+<div class="edit-feature-container">
+  <header class="page-header">
+    <div class="header-content">
+      <button class="btn-back" (click)="goBack()">← Back</button>
+      <h1 class="page-title">Edit Feature</h1>
+    </div>
+  </header>
+
+  @if (hasError()) {
+    <div class="alert alert-error">
+      <span>⚠️</span>
+      <span>{{ featureError() }}</span>
+      <button class="alert-close" (click)="featureService.clearError()">×</button>
+    </div>
+  }
+
+  @if (!hasValidFeature() && !isLoading()) {
+    <div class="alert alert-warning">
+      <span>⚠️</span>
+      <span>Invalid or missing feature ID</span>
+      <button class="btn-primary" (click)="goBack()">Go to Features List</button>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading feature data...</p>
+    </div>
+  }
+
+  @if (!isLoading() && hasValidFeature()) {
+    <div class="content-wrapper">
+      
+      <div class="feature-header-card">
+        <div class="feature-header-content">
+          <span class="feature-icon-large">🔐</span>
+          <div class="feature-header-text">
+            <h2 class="feature-name">{{ currentFeature()?.featureName }}</h2>
+            <p class="feature-code">{{ currentFeature()?.featureCode }}</p>
+            <p class="feature-description">{{ currentFeature()?.featureDesc }}</p>
+          </div>
+        </div>
+        <div class="feature-header-meta">
+          <div class="meta-badge">
+            <span class="meta-label">Status</span>
+            <span class="meta-value" [class.active]="currentFeature()?.isActive" [class.inactive]="!currentFeature()?.isActive">
+              {{ currentFeature()?.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+          <div class="meta-badge">
+            <span class="meta-label">Created</span>
+            <span class="meta-value">{{ currentFeature()?.createdDate | date:'MMM dd, yyyy' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3 class="form-card-title">✏️ Feature Details</h3>
+        <form class="edit-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Feature Name <span class="required">*</span></label>
+              <input type="text" class="form-input" [value]="featureName()" (input)="onFeatureNameChange($event)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Feature Code <span class="required">*</span></label>
+              <input type="text" class="form-input" [value]="featureCode()" (input)="onFeatureCodeChange($event)" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" [value]="featureDesc()" (input)="onFeatureDescChange($event)" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <div class="toggle-container">
+              <label class="toggle-switch">
+                <input type="checkbox" [checked]="isActive()" (change)="onIsActiveChange($event)" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label">{{ isActive() ? 'Active' : 'Inactive' }}</span>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button type="button" class="btn-secondary" (click)="cancelChanges()">Cancel</button>
+            <button type="button" class="btn-primary" (click)="saveChanges()" [disabled]="!canSave()">
+              @if (saving()) { <span class="spinner-small"></span> Saving... } @else { ✓ Save Changes }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="permission-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">👤</span>
+            <h3>Users</h3>
+            <span class="section-count">{{ usersWithPermissionCount() }} / {{ users().length }} have permission</span>
+          </div>
+          <div class="section-filter">
+            <label class="filter-label">Filter:</label>
+            <select class="filter-select" (change)="onUserFilterChange($event)" [value]="userFilter()">
+              <option [value]="filterType.All">All Users</option>
+              <option [value]="filterType.WithPermission">With Permission</option>
+              <option [value]="filterType.WithoutPermission">Without Permission</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-content">
+          @if (filteredUsers().length > 0) {
+            <div class="permission-list">
+              @for (user of filteredUsers(); track trackById($index, user)) {
+                <div class="permission-item">
+                  <div class="item-info">
+                    <span class="item-avatar">{{ user.firstName.charAt(0) }}{{ user.lastName.charAt(0) }}</span>
+                    <div class="item-details">
+                      <span class="item-name">{{ user.firstName }} {{ user.lastName }}</span>
+                      <span class="item-email">{{ user.email }}</span>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" [checked]="user.hasFeaturePermission" (change)="toggleUserPermission(user.id, user.hasFeaturePermission)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-state"><span>📭</span><p>No users found</p></div>
+          }
+        </div>
+      </div>
+
+      <div class="permission-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">👥</span>
+            <h3>Roles</h3>
+            <span class="section-count">{{ rolesWithPermissionCount() }} / {{ roles().length }} have permission</span>
+          </div>
+          <div class="section-filter">
+            <label class="filter-label">Filter:</label>
+            <select class="filter-select" (change)="onRoleFilterChange($event)" [value]="roleFilter()">
+              <option [value]="filterType.All">All Roles</option>
+              <option [value]="filterType.WithPermission">With Permission</option>
+              <option [value]="filterType.WithoutPermission">Without Permission</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-content">
+          @if (filteredRoles().length > 0) {
+            <div class="permission-list">
+              @for (role of filteredRoles(); track trackById($index, role)) {
+                <div class="permission-item">
+                  <div class="item-info">
+                    <span class="item-badge">{{ role.roleName }}</span>
+                    <div class="item-details">
+                      <span class="item-name">{{ role.roleName }}</span>
+                      <span class="item-email">{{ role.description || 'No description' }}</span>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" [checked]="role.hasFeaturePermission" (change)="toggleRolePermission(role.id, role.hasFeaturePermission)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-state"><span>📭</span><p>No roles found</p></div>
+          }
+        </div>
+      </div>
+
+      <div class="permission-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="section-icon">🌍</span>
+            <h3>Regions</h3>
+            <span class="section-count">{{ regionsWithPermissionCount() }} / {{ regions().length }} have permission</span>
+          </div>
+          <div class="section-filter">
+            <label class="filter-label">Filter:</label>
+            <select class="filter-select" (change)="onRegionFilterChange($event)" [value]="regionFilter()">
+              <option [value]="filterType.All">All Regions</option>
+              <option [value]="filterType.WithPermission">With Permission</option>
+              <option [value]="filterType.WithoutPermission">Without Permission</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-content">
+          @if (filteredRegions().length > 0) {
+            <div class="permission-list">
+              @for (region of filteredRegions(); track trackById($index, region)) {
+                <div class="permission-item">
+                  <div class="item-info">
+                    <span class="item-badge region">{{ region.regionName }}</span>
+                    <div class="item-details">
+                      <span class="item-name">{{ region.regionName }}</span>
+                      <span class="item-email">{{ region.regionCode }}</span>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" [checked]="region.hasFeaturePermission" (change)="toggleRegionPermission(region.id, region.hasFeaturePermission)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-state"><span>📭</span><p>No regions found</p></div>
+          }
+        </div>
+      </div>
+
+    </div>
+  }
+</div>

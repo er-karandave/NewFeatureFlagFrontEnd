@@ -1,0 +1,139 @@
+
+<div class="feature-list-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">
+        <span class="icon">🔐</span>
+        Feature Management
+      </h1>
+      <p class="page-subtitle">View and manage system features</p>
+    </div>
+    <button class="btn-refresh" (click)="refresh()" [disabled]="isLoading()">
+      <span>🔄</span> Refresh
+    </button>
+  </header>
+
+  @if (hasError()) {
+    <div class="alert alert-error">
+      <span class="alert-icon">⚠️</span>
+      <span>{{ error() }}</span>
+      <button class="alert-close" (click)="featureService.clearError()">×</button>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading features...</p>
+    </div>
+  }
+
+  @if (!isLoading()) {
+    <div class="content-wrapper">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <h3>{{ totalFeatures() }}</h3>
+            <p>Total Features</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <h3>{{ activeFeaturesCount() }}</h3>
+            <p>Active Features</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">❌</div>
+          <div class="stat-content">
+            <h3>{{ inactiveFeaturesCount() }}</h3>
+            <p>Inactive Features</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-content">
+            <h3>{{ totalAssignments() }}</h3>
+            <p>Role Assignments</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-bar">
+        <input
+          type="text"
+          placeholder="Search by feature name, code, or description..."
+          (input)="onSearchChange($event)"
+          class="search-input"
+        />
+        @if (searchQuery()) {
+          <button class="search-clear" (click)="clearSearch()">✕</button>
+        }
+        <span class="search-icon">🔍</span>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th class="col-name">Feature Name</th>
+              <th class="col-code">Feature Code</th>
+              <th class="col-desc">Description</th>
+              <th class="col-assignments">Assigned To</th>
+              <th class="col-status">Status</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (feature of displayFeatures(); track trackByFeatureId($index, feature)) {
+              <tr class="table-row">
+                <td class="col-id">#{{ feature.id }}</td>
+                <td class="col-name">
+                  <span class="feature-name-badge">{{ feature.featureName }}</span>
+                </td>
+                <td class="col-code">
+                  <span class="code-text">{{ feature.featureCode }}</span>
+                </td>
+                <td class="col-desc">
+                  <span class="desc-text">{{ feature.featureDesc }}</span>
+                </td>
+                <td class="col-assignments">
+                  <div class="assignment-badge">
+                    <span class="assignment-count">{{ feature.assignedRolesCount || 0 }}</span>
+                    <span class="assignment-label">roles</span>
+                  </div>
+                </td>
+                <td class="col-status">
+                  <span class="status-badge" [class.active]="feature.isActive" [class.inactive]="!feature.isActive">
+                    {{ feature.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td class="col-actions">
+                  <button class="btn-action btn-edit" (click)="editFeature(feature.id)">
+                    <span>✏️</span> Edit
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="empty-state">
+                  <div class="empty-content">
+                    <span class="empty-icon">📭</span>
+                    <p>No features found</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <p class="table-info">Showing {{ displayFeaturesCount() }} of {{ totalFeatures() }} features</p>
+      </div>
+    </div>
+  }
+</div>

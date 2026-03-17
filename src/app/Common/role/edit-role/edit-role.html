@@ -1,0 +1,298 @@
+
+<div class="edit-role-container">
+  <header class="page-header">
+    <div class="header-content">
+      <button class="btn-back" (click)="goBack()">← Back</button>
+      <h1 class="page-title">Edit Role</h1>
+    </div>
+  </header>
+
+  @if (hasError()) {
+  <div class="alert alert-error">
+    <span>⚠️</span>
+    <span>{{ roleError() }}</span>
+    <button class="alert-close" (click)="roleService.clearError()">×</button>
+  </div>
+  }
+
+  @if (!hasValidRole() && !isLoading()) {
+  <div class="alert alert-warning">
+    <span>⚠️</span>
+    <span>Invalid or missing role ID in query parameters</span>
+    <button class="btn-primary" (click)="goBack()">Go to Roles List</button>
+  </div>
+  }
+
+  @if (isLoading()) {
+  <div class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading role data...</p>
+  </div>
+  }
+  @if (!isLoading() && hasValidRole()) {
+  <div class="content-wrapper">
+    <div class="role-info-card">
+      <div class="role-info-header">
+        <span class="role-icon">👥</span>
+        <div>
+          <h2 class="role-name">{{ currentRole()?.roleName }}</h2>
+          <p class="role-description">{{ currentRole()?.description || 'No description' }}</p>
+        </div>
+      </div>
+      <div class="role-meta">
+        <div class="meta-item">
+          <span class="meta-label">Created</span>
+          <span class="meta-value">{{ currentRole()?.createdDate | date:'MMM dd, yyyy' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Status</span>
+          <span class="status-badge" [class.active]="currentRole()?.isActive"
+            [class.inactive]="!currentRole()?.isActive">
+            {{ currentRole()?.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Assigned Users</span>
+          <span class="meta-value">{{ usersWithThisRoleCount() }}</span>
+        </div>
+      </div>
+      <p class="read-only-notice">ℹ️ Role name cannot be changed</p>
+    </div>
+
+    <div class="permission-section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">👤</span>
+          <h3>Users</h3>
+          <span class="section-count">{{ usersWithThisRoleCount() }} / {{ users().length }} assigned</span>
+        </div>
+        <div class="section-filter">
+          <label class="filter-label">Filter:</label>
+          <select class="filter-select" (change)="onUserFilterChange($event)" [value]="userFilter()">
+            <option value="all">All Users</option>
+            <option value="with-role">With This Role</option>
+            <option value="without-role">Without This Role</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-content">
+        @if (filteredUsers().length > 0) {
+        <div class="permission-list">
+          @for (user of filteredUsers(); track trackByUserId($index, user)) {
+          <div class="permission-item">
+            <div class="item-info">
+              <span class="item-avatar">{{ user.firstName.charAt(0) }}{{ user.lastName.charAt(0) }}</span>
+              <div class="item-details">
+                <span class="item-name">{{ user.firstName }} {{ user.lastName }}</span>
+                <span class="item-email">{{ user.email }}</span>
+              </div>
+            </div>
+            @if (user.userRole === currentRole()?.roleName) {
+            <button class="btn-remove" (click)="removeUser(user.id)" title="Remove from role">✕</button>
+            } @else {
+            <button class="btn-assign" (click)="assignUser(user.id)" title="Assign to role">+</button>
+            }
+          </div>
+          }
+        </div>
+        } @else {
+        <div class="empty-state"><span>📭</span>
+          <p>No users found</p>
+        </div>
+        }
+      </div>
+    </div>
+
+    <div class="permission-section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">🔐</span>
+          <h3>Feature Permissions</h3>
+        </div>
+        <div class="section-filter">
+          <label class="filter-label">Filter:</label>
+          <select class="filter-select" (change)="onFeatureFilterChange($event)" [value]="featureFilter()">
+            <option value="all">All Features</option>
+            <option value="enabled">Enabled</option>
+            <option value="available">Available</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-content">
+        @if (filteredFeatures() && filteredFeatures().length > 0) {
+        <div class="permission-list">
+          @for (feature of filteredFeatures(); track trackByFeatureId($index, feature)) {
+          <div class="permission-item">
+            <div class="item-info">
+              <span class="item-badge">{{ feature.featureName }}</span>
+              <div class="item-details">
+                <span class="item-name">{{ feature.featureName }}</span>
+                <span class="item-email">{{ feature.featureCode }}</span>
+              </div>
+            </div>
+            @if (isFeatureEnabled(feature.id)) {
+            <label class="toggle-switch">
+              <input type="checkbox" [checked]="true" (change)="toggleFeaturePermission(feature.id, true)" />
+              <span class="toggle-slider"></span>
+            </label>
+            } @else {
+            <label class="toggle-switch">
+              <input type="checkbox" [checked]="false" (change)="toggleFeaturePermission(feature.id, false)" />
+              <span class="toggle-slider"></span>
+            </label>
+            }
+          </div>
+          }
+        </div>
+        } @else {
+        <div class="empty-state"><span>📭</span>
+          <p>No features found</p>
+        </div>
+        }
+      </div>
+    </div>
+
+    <div class="permissions-section">
+      <div class="section-header">
+        <h3>🔐 Role Permission Breakdown</h3>
+        <span class="section-subtitle">
+          {{ grantedPermissionsCount() }} granted / {{ deniedPermissionsCount() }} denied / {{ totalFeaturesCount() }}
+          total
+        </span>
+      </div>
+
+      @if (permissionsLoading()) {
+      <div class="loading-mini">
+        <div class="spinner-small"></div>
+        <span>Loading permissions...</span>
+      </div>
+      }
+
+      @if (!permissionsLoading() && rolePermissions() && rolePermissions()!.length > 0) {
+      <div class="permissions-table-container">
+        <table class="permissions-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Code</th>
+              <th>Effective</th>
+              <th>Granted By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (perm of rolePermissions(); track perm.featureId) {
+            <tr class="permission-row" [class.granted]="perm.effectivePermission"
+              [class.denied]="!perm.effectivePermission">
+              <td>
+                <span class="feature-name">{{ perm.featureName }}</span>
+              </td>
+              <td>
+                <code class="feature-code">{{ perm.featureCode }}</code>
+              </td>
+              <td>
+                <span class="status-badge" [class.granted]="perm.effectivePermission"
+                  [class.denied]="!perm.effectivePermission">
+                  {{ perm.effectivePermission ? '✅ Granted' : '❌ Denied' }}
+                </span>
+              </td>
+              <td>
+                <span class="granted-by">
+                  @if (perm.roleLevel) {
+                  <span class="level-badge role">ROLE</span>
+                  <span class="granted-id">{{ currentRole()?.roleName }}</span>
+                  } @else if (perm.globalLevel) {
+                  <span class="level-badge global">GLOBAL</span>
+                  <span class="granted-id">Default</span>
+                  } @else {
+                  <span class="default-perm">Default (Denied)</span>
+                  }
+                </span>
+              </td>
+              <td>
+                <button class="btn-view-breakdown" (click)="viewBreakdown(perm.featureId)" title="View breakdown">
+                  🔍 Details
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (selectedBreakdownFeature()) {
+      <div class="breakdown-panel">
+        <div class="breakdown-header">
+          <h4>Permission Breakdown: {{ selectedBreakdownFeature()?.featureName }}</h4>
+          <button class="btn-close-breakdown" (click)="selectedBreakdownFeature.set(null)">✕</button>
+        </div>
+
+        <div class="breakdown-content">
+          <div class="breakdown-row">
+            <span class="breakdown-label">👥 Role Level ({{ currentRole()?.roleName }})</span>
+            <div class="breakdown-value">
+              <label class="toggle-switch small">
+                <input type="checkbox" [checked]="selectedBreakdownFeature()?.roleLevel" (change)="togglePermission(
+                selectedBreakdownFeature()!.featureId, 
+                'ROLE', 
+                currentRole()?.roleName || '', 
+                selectedBreakdownFeature()!.roleLevel
+              )" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span [class.granted]="selectedBreakdownFeature()?.roleLevel"
+                [class.denied]="!selectedBreakdownFeature()?.roleLevel">
+                {{ selectedBreakdownFeature()?.roleLevel ? 'Granted' : 'Denied' }}
+              </span>
+            </div>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">🌐 Global Level</span>
+            <div class="breakdown-value">
+              <label class="toggle-switch small">
+                <input type="checkbox" [checked]="selectedBreakdownFeature()?.globalLevel" (change)="togglePermission(
+                selectedBreakdownFeature()!.featureId, 
+                'GLOBAL', 
+                '1', 
+                selectedBreakdownFeature()!.globalLevel
+              )" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span [class.granted]="selectedBreakdownFeature()?.globalLevel"
+                [class.denied]="!selectedBreakdownFeature()?.globalLevel">
+                {{ selectedBreakdownFeature()?.globalLevel ? 'Granted' : 'Denied' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="breakdown-effective">
+            <strong>Effective Permission:</strong>
+            <span class="status-badge" [class.granted]="selectedBreakdownFeature()?.effectivePermission"
+              [class.denied]="!selectedBreakdownFeature()?.effectivePermission">
+              {{ selectedBreakdownFeature()?.effectivePermission ? '✅ GRANTED' : '❌ DENIED' }}
+            </span>
+            <span class="priority-note">
+              (Priority: Role → Global)
+            </span>
+          </div>
+        </div>
+      </div>
+      }
+      }
+    </div>
+    <div class="action-buttons">
+      <button type="button" class="btn-secondary" (click)="goBack()">
+        Go Back
+      </button>
+      <button type="button" class="btn-primary" [disabled]="!canSave()">
+        @if (saving()) {
+        <span class="spinner-small"></span>
+        Saving...
+        } @else {
+        ✓ Changes Saved
+        }
+      </button>
+    </div>
+  </div>
+  }
+</div>

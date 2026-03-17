@@ -1,0 +1,126 @@
+
+<div class="role-list-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">
+        <span class="icon">👥</span>
+        Role Management
+      </h1>
+      <p class="page-subtitle">View and manage system roles</p>
+    </div>
+    <button class="btn-refresh" (click)="refresh()" [disabled]="isLoading()">
+      <span>🔄</span> Refresh
+    </button>
+  </header>
+
+  @if (hasError()) {
+  <div class="alert alert-error">
+    <span class="alert-icon">⚠️</span>
+    <span>{{ error() }}</span>
+    <button class="alert-close" (click)="roleService.clearError()">×</button>
+  </div>
+  }
+
+  @if (isLoading()) {
+  <div class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading roles...</p>
+  </div>
+  }
+
+  @if (!isLoading()) {
+  <div class="content-wrapper">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <h3>{{ totalRoles() }}</h3>
+          <p>Total Roles</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👤</div>
+        <div class="stat-content">
+          <h3>{{ totalAssignments() }}</h3>
+          <p>Total Assignments</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔐</div>
+        <div class="stat-content">
+          <h3>{{ totalGrantedFeatures() }}</h3>
+          <p>Granted Features</p>
+        </div>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="Search by role name or description..."
+        (input)="onSearchChange($event)" class="search-input" />
+      @if (searchQuery()) {
+      <button class="search-clear" (click)="clearSearch()">✕</button>
+      }
+      <span class="search-icon">🔍</span>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-name">Role Name</th>
+            <th class="col-desc">Description</th>
+            <th class="col-assigned">Assigned To</th>
+            <th class="col-features">Features</th> 
+            <th class="col-status">Status</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (role of displayRoles(); track trackByRoleId($index, role)) {
+          <tr class="table-row">
+            <td class="col-name">
+              <span class="role-badge">{{ role.roleName }}</span>
+            </td>
+            <td class="col-desc">
+              <span class="desc-text">{{ role.description || 'N/A' }}</span>
+            </td>
+            <td class="col-assigned">
+              <div class="assigned-badge">
+                <span class="assigned-count">{{ role.assignedUsersCount }}</span>
+                <span class="assigned-label">users</span>
+              </div>
+            </td>
+            <td class="col-features"> 
+              <div class="features-badge">
+                <span class="features-count">{{ role.grantedFeaturesCount || 0 }}</span>
+                <span class="features-label"> - enabled</span>
+              </div>
+            </td>
+            <td class="col-status">
+              <span class="status-badge" [class.active]="role.isActive" [class.inactive]="!role.isActive">
+                {{ role.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="col-actions">
+              <button class="btn-action btn-edit" (click)="editRole(role.roleName)">
+                <span>✏️</span> Edit
+              </button>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="7" class="empty-state">
+              <div class="empty-content">
+                <span class="empty-icon">📭</span>
+                <p>No roles found</p>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <p class="table-info">Showing {{ displayRolesCount() }} of {{ totalRoles() }} roles</p>
+    </div>
+  </div>
+  }
+</div>

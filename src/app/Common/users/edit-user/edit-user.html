@@ -1,0 +1,275 @@
+
+<div class="edit-user-container">
+  <header class="page-header">
+    <div class="header-content">
+      <button class="btn-back" (click)="goBack()">← Back</button>
+      <h1 class="page-title">Edit User</h1>
+    </div>
+  </header>
+
+  @if (hasError()) {
+  <div class="alert alert-error">
+    <span>⚠️</span>
+    <span>{{ userError() }}</span>
+    <button class="alert-close" (click)="userService.clearError()">×</button>
+  </div>
+  }
+
+  @if (isLoading()) {
+  <div class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading user data...</p>
+  </div>
+  }
+
+  @if (!isLoading() && hasValidUser()) {
+  <div class="content-wrapper">
+    <div class="user-info-card">
+      <div class="user-info-header">
+        <span class="user-avatar-large">{{ firstName().charAt(0) }}{{ lastName().charAt(0) }}</span>
+        <div>
+          <h2 class="user-id">User #{{ userId() }}</h2>
+          <p class="user-subtitle">Edit user details below</p>
+        </div>
+      </div>
+    </div>
+    <div class="form-card">
+      <form class="edit-form" (ngSubmit)="saveChanges()">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="firstName">First Name <span class="required">*</span></label>
+            <input type="text" id="firstName" class="form-input" [value]="firstName()"
+              (input)="onFirstNameChange($event)" placeholder="Enter first name" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="lastName">Last Name <span class="required">*</span></label>
+            <input type="text" id="lastName" class="form-input" [value]="lastName()" (input)="onLastNameChange($event)"
+              placeholder="Enter last name" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" class="form-input" [value]="email()" (input)="onEmailChange($event)"
+            placeholder="Enter email address" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="userRole">User Role <span class="required">*</span></label>
+          <select id="userRole" class="form-select" (change)="onUserRoleChange($event)" [value]="userRole()">
+            <option value="" disabled>Select a role</option>
+            @for (role of userRoles(); track $index) {
+            <option [value]="role">{{ role }}</option> 
+            }
+          </select>
+          @if (!isRoleInOptions() && userRole()) {
+          <span class="form-warning">⚠️ "{{ userRole() }}" is not in list but will be saved</span>
+          }
+          <span class="form-hint">Select from existing roles or type a new one</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="region">Region <span class="required">*</span></label>
+          <select id="region" class="form-select" (change)="onRegionChange($event)" [value]="region()">
+            <option value="" disabled>Select a region</option>
+            @for (region of regions(); track $index) {
+            <option [value]="region">{{ region }}</option>
+            }
+          </select>
+          @if (!isRegionInOptions() && region()) {
+          <span class="form-warning">⚠️ "{{ region() }}" is not in list but will be saved</span>
+          }
+          <span class="form-hint">Select from existing regions or type a new one</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="dob">Date of Birth</label>
+          <input type="date" id="dob" class="form-input" [value]="dob()" (input)="onDobChange($event)" />
+          <span class="form-hint">Optional - Enter user's date of birth</span>
+        </div>
+        <div class="action-buttons">
+          <button type="button" class="btn-secondary" (click)="cancelChanges()">Cancel</button>
+          <button type="button" class="btn-secondary" (click)="goBack()">Go Back</button>
+          <button type="submit" class="btn-primary" [disabled]="!canSave()">
+            @if (saving()) {
+            <span class="spinner-small"></span>
+            Saving...
+            } @else {
+            ✓ Save Changes
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="info-card">
+      <div class="info-header">
+        <span class="info-icon">ℹ️</span>
+        <h3>Additional Information</h3>
+      </div>
+      <div class="info-content">
+        <p><strong>Current Role:</strong> {{ userRole() }}</p>
+        <p><strong>Current Region:</strong> {{ region() }}</p>
+        <p><strong>Note:</strong> Role and Region values are saved as text. You can enter new values not in the
+          dropdown.</p>
+      </div>
+    </div>
+  </div>
+  }
+</div>
+@if (!isLoading() && hasValidUser()) {
+<div class="permissions-section">
+  <div class="section-header">
+    <h3>🔐 Feature Permissions</h3>
+    <span class="section-subtitle">
+      {{ grantedPermissionsCount() }} granted / {{ deniedPermissionsCount() }} denied / {{ totalFeaturesCount() }} total
+    </span>
+  </div>
+  @if (permissionsLoading()) {
+  <div class="loading-mini">
+    <div class="spinner-small"></div>
+    <span>Loading permissions...</span>
+  </div>
+  }
+  @if (!permissionsLoading() && userPermissions()) {
+  <div class="permissions-table-container">
+    <table class="permissions-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Code</th>
+          <th>Effective</th>
+          <th>Granted By</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (perm of userPermissions()?.effectivePermissions; track perm.featureId) {
+        <tr class="permission-row" [class.granted]="perm.isGranted" [class.denied]="!perm.isGranted">
+          <td>
+            <span class="feature-name">{{ perm.featureName }}</span>
+          </td>
+          <td>
+            <code class="feature-code">{{ perm.featureCode }}</code>
+          </td>
+          <td>
+            <span class="status-badge" [class.granted]="perm.isGranted" [class.denied]="!perm.isGranted">
+              {{perm.isGranted | json}}
+              {{ perm.isGranted ? '✅ Granted' : '❌ Denied' }}
+            </span>
+          </td>
+          <td>
+            <span class="granted-by">
+              @if (perm.grantedAtLevel === 'DEFAULT') {
+              <span class="default-perm">Default (Denied)</span>
+              } @else {
+              <span class="level-badge" [class]="perm.grantedAtLevel.toLowerCase()">
+                {{ perm.grantedAtLevel }}
+              </span>
+              <span class="granted-id">{{ perm.grantedAtId }}</span>
+              }
+            </span>
+          </td>
+          <td>
+            <button class="btn-view-breakdown" (click)="viewBreakdown(perm.featureId)" title="View breakdown">
+              🔍 Details
+            </button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (selectedBreakdownFeature()) {
+  <div class="breakdown-panel">
+    <div class="breakdown-header">
+      <h4>Permission Breakdown: {{ selectedBreakdownFeature()?.featureName }}</h4>
+      <button class="btn-close-breakdown" (click)="selectedBreakdownFeature.set(null)">✕</button>
+    </div>
+
+    <div class="breakdown-content">
+      
+      <div class="breakdown-row">
+        <span class="breakdown-label">👤 User Level</span>
+        <div class="breakdown-value">
+          <label class="toggle-switch small">
+            <input type="checkbox" [checked]="selectedBreakdownFeature()?.userLevel" (change)="togglePermission(
+          selectedBreakdownFeature()!.featureId, 
+          'USER', 
+          userId().toString(), 
+          selectedBreakdownFeature()!.userLevel
+        )" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span [class.granted]="selectedBreakdownFeature()?.userLevel"
+            [class.denied]="!selectedBreakdownFeature()?.userLevel">
+            {{ selectedBreakdownFeature()?.userLevel ? 'Granted' : 'Denied' }}
+          </span>
+        </div>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-label">👥 Role Level ({{ currentUser()?.userRole }})</span>
+        <div class="breakdown-value">
+          <label class="toggle-switch small">
+            <input type="checkbox" [checked]="selectedBreakdownFeature()?.roleLevel" (change)="togglePermission(
+          selectedBreakdownFeature()!.featureId, 
+          'ROLE', 
+          currentUser()?.userRole || '', 
+          selectedBreakdownFeature()!.roleLevel
+        )" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span [class.granted]="selectedBreakdownFeature()?.roleLevel"
+            [class.denied]="!selectedBreakdownFeature()?.roleLevel">
+            {{ selectedBreakdownFeature()?.roleLevel ? 'Granted' : 'Denied' }}
+          </span>
+        </div>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-label">🌍 Region Level ({{ currentUser()?.region }})</span>
+        <div class="breakdown-value">
+          <label class="toggle-switch small">
+            <input type="checkbox" [checked]="selectedBreakdownFeature()?.regionLevel" (change)="togglePermission(
+          selectedBreakdownFeature()!.featureId, 
+          'COUNTRY', 
+          currentUser()?.region || '', 
+          selectedBreakdownFeature()!.regionLevel
+        )" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span [class.granted]="selectedBreakdownFeature()?.regionLevel"
+            [class.denied]="!selectedBreakdownFeature()?.regionLevel">
+            {{ selectedBreakdownFeature()?.regionLevel ? 'Granted' : 'Denied' }}
+          </span>
+        </div>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-label">🌐 Global Level</span>
+        <div class="breakdown-value">
+          <label class="toggle-switch small">
+            <input type="checkbox" [checked]="selectedBreakdownFeature()?.globalLevel" (change)="togglePermission(
+          selectedBreakdownFeature()!.featureId, 
+          'GLOBAL', 
+          '1', 
+          selectedBreakdownFeature()!.globalLevel
+        )" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span [class.granted]="selectedBreakdownFeature()?.globalLevel"
+            [class.denied]="!selectedBreakdownFeature()?.globalLevel">
+            {{ selectedBreakdownFeature()?.globalLevel ? 'Granted' : 'Denied' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="breakdown-effective">
+        <strong>Effective Permission:</strong>
+        <span class="status-badge" [class.granted]="selectedBreakdownFeature()?.effectivePermission"
+          [class.denied]="!selectedBreakdownFeature()?.effectivePermission">
+          {{ selectedBreakdownFeature()?.effectivePermission ? '✅ GRANTED' : '❌ DENIED' }}
+        </span>
+        <span class="priority-note">
+          (Priority: User → Role → Region → Global)
+        </span>
+      </div>
+    </div>
+  </div>
+  }
+  }
+</div>
+}

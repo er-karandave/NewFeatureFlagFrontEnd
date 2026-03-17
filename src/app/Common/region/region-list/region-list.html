@@ -1,0 +1,90 @@
+
+<div class="region-list-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">
+        <span class="icon">🌍</span>
+        Region Management
+      </h1>
+      <p class="page-subtitle">View and manage system regions</p>
+    </div>
+    <button class="btn-refresh" (click)="refresh()" [disabled]="isLoading()">
+      <span>🔄</span> Refresh
+    </button>
+  </header>
+
+  @if (hasError()) {
+  <div class="alert alert-error">
+    <span class="alert-icon">⚠️</span>
+    <span>{{ error() }}</span>
+    <button class="alert-close" (click)="regionService.clearError()">×</button>
+  </div>
+  }
+
+  @if (isLoading()) {
+  <div class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading regions...</p>
+  </div>
+  }
+
+  @if (!isLoading()) {
+  <div class="content-wrapper">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <h3>{{ totalRegions() }}</h3>
+          <p>Total Regions</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" placeholder="Search by region name..."
+        (input)="onSearchChange($event)" class="search-input" />
+      @if (searchQuery()) {
+      <button class="search-clear" (click)="clearSearch()">✕</button>
+      }
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-name">Region Name</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (region of displayRegions(); track trackByRegionName($index, region)) {
+          <tr class="table-row">
+            <td class="col-name">
+              <span class="region-badge">{{ region.regionName }}</span>
+            </td>
+            <td class="col-actions">
+              <button class="btn-action btn-edit" (click)="editRegion(region.regionName)">
+                <span>✏️</span> Edit
+              </button>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="2" class="empty-state">
+              <div class="empty-content">
+                <span class="empty-icon">📭</span>
+                <p>No regions found</p>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <p class="table-info">Showing {{ displayRegionsCount() }} of {{ totalRegions() }} regions</p>
+    </div>
+  </div>
+  }
+</div>
